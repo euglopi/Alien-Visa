@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Results - O-1 Visa Readiness Analyzer{% endblock %}
+
+{% block content %}
+<div class="min-h-screen py-12 px-4">
+    <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">O-1A Criteria Assessment</h1>
+            <p class="text-gray-600">Based on your uploaded resume</p>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Summary</h2>
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    {{ criteria_met }}/8 Criteria Met
+                </span>
+            </div>
+            <p class="text-gray-600">
+                You need to meet at least 3 of the 8 criteria to qualify for an O-1A visa.
+                {% if criteria_met >= 3 %}
+                <span class="text-green-600 font-medium">You appear to meet the minimum threshold.</span>
+                {% else %}
+                <span class="text-red-600 font-medium">You may need to strengthen your profile.</span>
+                {% endif %}
+            </p>
+        </div>
+
+        <div class="space-y-4">
+            {% for criterion in criteria %}
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 mt-1">
+                        {% if criterion.met %}
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">{{ criterion.name }}</h3>
+                        <p class="text-sm text-gray-500 mb-2">{{ criterion.description }}</p>
+                        {% if criterion.evidence %}
+                        <div class="mt-2 p-3 bg-gray-50 rounded-md">
+                            <p class="text-sm text-gray-700">
+                                <span class="font-medium">Evidence:</span> {{ criterion.evidence }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
+                &larr; Analyze another resume
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
