@@ -6,7 +6,7 @@
 <div class="min-h-screen py-12 px-4">
     <div class="max-w-3xl mx-auto">
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">O-1A Criteria Assessment</h1>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">O-1A Assessment Criteria</h1>
             <p class="text-gray-600">Based on your uploaded resume</p>
         </div>
 
@@ -240,7 +240,24 @@
 
     <!-- Input Area -->
     <div class="p-4 border-t bg-gray-50">
-        <div class="flex gap-2">
+        <!-- Voice/Text Toggle -->
+        <div class="flex gap-2 mb-3">
+            <button
+                id="text-mode-btn"
+                onclick="setInputMode('text')"
+                class="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 border-2 border-blue-500">
+                Text
+            </button>
+            <button
+                id="voice-mode-btn"
+                onclick="setInputMode('voice')"
+                class="flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-transparent hover:border-purple-300">
+                Voice
+            </button>
+        </div>
+
+        <!-- Text Input Mode -->
+        <div id="text-input-area" class="flex gap-2">
             <input
                 type="text"
                 id="chat-input"
@@ -254,6 +271,62 @@
                 Send
             </button>
         </div>
+
+        <!-- Voice Input Mode -->
+        <div id="voice-input-area" class="hidden">
+            <div class="flex flex-col items-center gap-3">
+                <!-- Speed Slider -->
+                <div class="w-full flex items-center gap-2 px-2">
+                    <span class="text-xs text-gray-500">Speed:</span>
+                    <input
+                        type="range"
+                        id="voice-speed-slider"
+                        min="0.8"
+                        max="1.5"
+                        step="0.1"
+                        value="1.2"
+                        class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                        onchange="updateVoiceSpeed(this.value)"
+                        oninput="document.getElementById('speed-value').textContent = this.value + 'x'">
+                    <span id="speed-value" class="text-xs text-gray-600 w-8">1.2x</span>
+                </div>
+
+                <!-- Voice Status -->
+                <div id="voice-status" class="text-sm text-gray-500">
+                    Click microphone to start
+                </div>
+
+                <!-- Microphone Button -->
+                <button
+                    id="mic-btn"
+                    onclick="toggleVoice()"
+                    class="w-16 h-16 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg id="mic-icon" class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                    <svg id="mic-active-icon" class="w-8 h-8 hidden animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path>
+                        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path>
+                    </svg>
+                </button>
+
+                <!-- Audio Visualizer -->
+                <div id="audio-visualizer" class="hidden flex items-center gap-1 h-8">
+                    <div class="w-1 bg-purple-500 rounded-full animate-pulse" style="height: 30%"></div>
+                    <div class="w-1 bg-purple-500 rounded-full animate-pulse" style="height: 60%; animation-delay: 0.1s"></div>
+                    <div class="w-1 bg-purple-500 rounded-full animate-pulse" style="height: 100%; animation-delay: 0.2s"></div>
+                    <div class="w-1 bg-purple-500 rounded-full animate-pulse" style="height: 60%; animation-delay: 0.3s"></div>
+                    <div class="w-1 bg-purple-500 rounded-full animate-pulse" style="height: 30%; animation-delay: 0.4s"></div>
+                </div>
+
+                <!-- Connection status -->
+                <div id="voice-connection" class="hidden text-xs text-gray-400">
+                    <span id="connection-dot" class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                    Connected
+                </div>
+            </div>
+        </div>
+
         <button
             id="rescore-btn"
             onclick="requestRescore()"
@@ -697,5 +770,391 @@ async function requestMentorReview(mentor) {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeChallengePanel();
 });
+
+// ==================== VOICE FUNCTIONALITY ====================
+
+let inputMode = 'text';
+let voiceSocket = null;
+let audioContext = null;
+let mediaStream = null;
+let audioWorklet = null;
+let isVoiceActive = false;
+let audioQueue = [];
+let isPlaying = false;
+let currentAudioSource = null;  // Track current playing audio for interruption
+
+// Set input mode (text or voice)
+function setInputMode(mode) {
+    inputMode = mode;
+
+    const textBtn = document.getElementById('text-mode-btn');
+    const voiceBtn = document.getElementById('voice-mode-btn');
+    const textArea = document.getElementById('text-input-area');
+    const voiceArea = document.getElementById('voice-input-area');
+
+    if (mode === 'text') {
+        textBtn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 border-2 border-blue-500';
+        voiceBtn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-transparent hover:border-purple-300';
+        textArea.classList.remove('hidden');
+        voiceArea.classList.add('hidden');
+        // Disconnect voice if switching away
+        if (voiceSocket) {
+            disconnectVoice();
+        }
+    } else {
+        textBtn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 border-2 border-transparent hover:border-blue-300';
+        voiceBtn.className = 'flex-1 py-2 px-3 rounded-lg text-sm font-medium bg-purple-100 text-purple-700 border-2 border-purple-500';
+        textArea.classList.add('hidden');
+        voiceArea.classList.remove('hidden');
+        // Automatically start voice connection when switching to voice mode
+        if (!isVoiceActive) {
+            connectVoice();
+        }
+    }
+}
+
+// Toggle voice connection
+async function toggleVoice() {
+    if (isVoiceActive) {
+        disconnectVoice();
+    } else {
+        await connectVoice();
+    }
+}
+
+// Connect to voice WebSocket
+async function connectVoice() {
+    if (!currentCriterion) return;
+
+    const micBtn = document.getElementById('mic-btn');
+    const voiceStatus = document.getElementById('voice-status');
+    micBtn.disabled = true;
+    voiceStatus.textContent = 'Connecting...';
+
+    try {
+        // Request microphone access
+        mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                sampleRate: 24000,
+                channelCount: 1,
+                echoCancellation: true,
+                noiseSuppression: true,
+            }
+        });
+
+        // Create audio context
+        audioContext = new (window.AudioContext || window.webkitAudioContext)({
+            sampleRate: 24000
+        });
+
+        // Connect WebSocket
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${wsProtocol}//${window.location.host}/voice/${sessionId}/${encodeURIComponent(currentCriterion)}`;
+        voiceSocket = new WebSocket(wsUrl);
+
+        voiceSocket.onopen = () => {
+            console.log('Voice WebSocket connected');
+        };
+
+        voiceSocket.onmessage = async (event) => {
+            const data = JSON.parse(event.data);
+            handleVoiceMessage(data);
+        };
+
+        voiceSocket.onerror = (error) => {
+            console.error('Voice WebSocket error:', error);
+            voiceStatus.textContent = 'Connection error';
+            disconnectVoice();
+        };
+
+        voiceSocket.onclose = () => {
+            console.log('Voice WebSocket closed');
+            if (isVoiceActive) {
+                disconnectVoice();
+            }
+        };
+
+        // Wait for session ready
+        await waitForSessionReady();
+
+        // Send current speed setting
+        const currentSpeed = document.getElementById('voice-speed-slider').value;
+        updateVoiceSpeed(currentSpeed);
+
+        // Start audio capture
+        await startAudioCapture();
+
+        isVoiceActive = true;
+        updateVoiceUI(true);
+
+    } catch (error) {
+        console.error('Failed to connect voice:', error);
+        voiceStatus.textContent = error.message || 'Failed to connect';
+        micBtn.disabled = false;
+        disconnectVoice();
+    }
+}
+
+// Wait for session ready message
+function waitForSessionReady() {
+    return new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error('Connection timeout')), 10000);
+
+        const originalHandler = voiceSocket.onmessage;
+        voiceSocket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'session.ready' || data.type === 'session.updated') {
+                clearTimeout(timeout);
+                voiceSocket.onmessage = originalHandler;
+                resolve();
+            } else if (data.type === 'error') {
+                clearTimeout(timeout);
+                reject(new Error(data.message));
+            }
+            // Still handle other messages
+            if (originalHandler) originalHandler(event);
+        };
+    });
+}
+
+// Start capturing audio from microphone
+async function startAudioCapture() {
+    const source = audioContext.createMediaStreamSource(mediaStream);
+
+    // Create a script processor for audio capture (fallback for browsers without AudioWorklet)
+    const bufferSize = 4096;
+    const processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+    processor.onaudioprocess = (event) => {
+        if (!isVoiceActive || !voiceSocket || voiceSocket.readyState !== WebSocket.OPEN) return;
+
+        const inputData = event.inputBuffer.getChannelData(0);
+
+        // Convert float32 to int16 PCM
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+            const s = Math.max(-1, Math.min(1, inputData[i]));
+            pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+
+        // Convert to base64
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+
+        // Send to server
+        voiceSocket.send(JSON.stringify({
+            type: 'audio',
+            audio: base64
+        }));
+    };
+
+    source.connect(processor);
+    processor.connect(audioContext.destination);
+
+    audioWorklet = processor;
+}
+
+// Handle incoming voice messages
+function handleVoiceMessage(data) {
+    const voiceStatus = document.getElementById('voice-status');
+
+    switch (data.type) {
+        case 'session.created':
+        case 'session.updated':
+            voiceStatus.textContent = 'Ready - speak now';
+            break;
+
+        case 'speech.started':
+            voiceStatus.textContent = 'Listening...';
+            document.getElementById('audio-visualizer').classList.remove('hidden');
+            // Barge-in: Stop AI audio when user starts speaking
+            interruptAIPlayback();
+            break;
+
+        case 'speech.stopped':
+            voiceStatus.textContent = 'Processing...';
+            document.getElementById('audio-visualizer').classList.add('hidden');
+            break;
+
+        case 'audio.delta':
+            // Queue audio for playback
+            if (data.audio) {
+                audioQueue.push(data.audio);
+                playNextAudio();
+            }
+            voiceStatus.textContent = 'Assistant speaking...';
+            break;
+
+        case 'audio.done':
+            voiceStatus.textContent = 'Your turn - speak now';
+            break;
+
+        case 'transcript.done':
+            // Add transcript to chat
+            addMessageToChat(data.role, data.transcript);
+            messageCount++;
+            if (messageCount >= 2) {
+                document.getElementById('rescore-btn').classList.remove('hidden');
+            }
+            break;
+
+        case 'response.done':
+            voiceStatus.textContent = 'Your turn - speak now';
+            break;
+
+        case 'error':
+            voiceStatus.textContent = `Error: ${data.message}`;
+            console.error('Voice error:', data.message);
+            break;
+    }
+}
+
+// Interrupt AI audio playback (barge-in)
+function interruptAIPlayback() {
+    // Stop current audio source
+    if (currentAudioSource) {
+        try {
+            currentAudioSource.stop();
+        } catch (e) {
+            // Already stopped
+        }
+        currentAudioSource = null;
+    }
+
+    // Clear pending audio queue
+    audioQueue = [];
+    isPlaying = false;
+
+    // Send cancel event to OpenAI to stop generating more audio
+    if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
+        voiceSocket.send(JSON.stringify({ type: 'response.cancel' }));
+    }
+
+    console.log('AI playback interrupted (barge-in)');
+}
+
+// Play audio from queue
+async function playNextAudio() {
+    if (isPlaying || audioQueue.length === 0 || !audioContext) return;
+
+    isPlaying = true;
+
+    while (audioQueue.length > 0) {
+        const base64Audio = audioQueue.shift();
+
+        try {
+            // Decode base64 to PCM16
+            const binaryString = atob(base64Audio);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            // Convert PCM16 to Float32
+            const pcm16 = new Int16Array(bytes.buffer);
+            const float32 = new Float32Array(pcm16.length);
+            for (let i = 0; i < pcm16.length; i++) {
+                float32[i] = pcm16[i] / 32768.0;
+            }
+
+            // Create audio buffer and play
+            const audioBuffer = audioContext.createBuffer(1, float32.length, 24000);
+            audioBuffer.getChannelData(0).set(float32);
+
+            const source = audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(audioContext.destination);
+            currentAudioSource = source;  // Track for interruption
+
+            await new Promise((resolve) => {
+                source.onended = () => {
+                    if (currentAudioSource === source) {
+                        currentAudioSource = null;
+                    }
+                    resolve();
+                };
+                source.start();
+            });
+        } catch (error) {
+            console.error('Audio playback error:', error);
+        }
+    }
+
+    isPlaying = false;
+}
+
+// Disconnect voice
+function disconnectVoice() {
+    isVoiceActive = false;
+
+    if (voiceSocket) {
+        voiceSocket.close();
+        voiceSocket = null;
+    }
+
+    if (audioWorklet) {
+        audioWorklet.disconnect();
+        audioWorklet = null;
+    }
+
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+
+    if (audioContext) {
+        audioContext.close();
+        audioContext = null;
+    }
+
+    audioQueue = [];
+    isPlaying = false;
+
+    updateVoiceUI(false);
+}
+
+// Update voice speed
+function updateVoiceSpeed(speed) {
+    if (voiceSocket && voiceSocket.readyState === WebSocket.OPEN) {
+        voiceSocket.send(JSON.stringify({
+            type: 'session.update',
+            session: { speed: parseFloat(speed) }
+        }));
+    }
+}
+
+// Update voice UI
+function updateVoiceUI(active) {
+    const micBtn = document.getElementById('mic-btn');
+    const micIcon = document.getElementById('mic-icon');
+    const micActiveIcon = document.getElementById('mic-active-icon');
+    const voiceStatus = document.getElementById('voice-status');
+    const voiceConnection = document.getElementById('voice-connection');
+    const visualizer = document.getElementById('audio-visualizer');
+
+    micBtn.disabled = false;
+
+    if (active) {
+        micBtn.className = 'w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center hover:bg-red-700 transition-all';
+        micIcon.classList.add('hidden');
+        micActiveIcon.classList.remove('hidden');
+        voiceStatus.textContent = 'Connecting to AI...';
+        voiceConnection.classList.remove('hidden');
+    } else {
+        micBtn.className = 'w-16 h-16 rounded-full bg-purple-600 text-white flex items-center justify-center hover:bg-purple-700 transition-all';
+        micIcon.classList.remove('hidden');
+        micActiveIcon.classList.add('hidden');
+        voiceStatus.textContent = 'Click microphone to start';
+        voiceConnection.classList.add('hidden');
+        visualizer.classList.add('hidden');
+    }
+}
+
+// Clean up voice when panel closes
+const originalCloseChallengePanel = closeChallengePanel;
+closeChallengePanel = function() {
+    disconnectVoice();
+    setInputMode('text');
+    originalCloseChallengePanel();
+};
 </script>
 {% endblock %}
