@@ -73,16 +73,19 @@ Each slice delivers working end-to-end functionality. Ship each slice before sta
 
 ---
 
-## Slice 5: Gap Interview
-**Goal:** Collect additional evidence through targeted questions
+## Slice 5: Per-Criteria Challenge
+**Goal:** Allow users to challenge any criterion via conversational sidebar
 
-- [ ] `templates/interview.html` - form with questions for missing criteria
-- [ ] `GET /interview/{session_id}` - show questions based on gaps
-- [ ] `POST /interview/{session_id}` - save answers, re-run analysis
-- [ ] Update flow: upload → interview → results
-- [ ] Decision tree for questions (not full LLM, just targeted prompts)
+- [ ] `models/criteria.py` - add ChatMessage, ChallengeSession models
+- [ ] `services/challenger.py` - LLM prompts for education, interview, rescore
+- [ ] `POST /challenge/{session_id}/{criterion}/start` - begin challenge session
+- [ ] `POST /challenge/{session_id}/{criterion}/chat` - send/receive messages
+- [ ] `POST /challenge/{session_id}/{criterion}/rescore` - re-evaluate criterion
+- [ ] `templates/results.html` - Challenge button on all criteria cards
+- [ ] Slide-in sidebar with chatbot UI (vanilla JS + Tailwind)
+- [ ] Auto-update results page after successful rescore
 
-**Files:** `templates/interview.html`, `routes/interview.py`
+**Files:** `services/challenger.py`, `models/criteria.py`, `main.py`, `templates/results.html`
 
 ---
 
@@ -106,12 +109,12 @@ alien/
 ├── templates/
 │   ├── base.html
 │   ├── index.html
-│   ├── interview.html
 │   └── results.html
 ├── services/
 │   ├── parser.py
 │   ├── analyzer.py
 │   ├── scorer.py
+│   ├── challenger.py
 │   └── recommender.py
 ├── models/
 │   ├── resume.py
