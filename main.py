@@ -126,8 +126,10 @@ async def challenge_start(session_id: str, criterion_name: str):
     # Get resume text for context
     resume_text = session.get("parsed_resume", {}).get("raw_text", "")
 
-    # Generate initial educational message
-    initial_message = start_challenge(criterion, resume_text)
+    # Generate initial educational message and suggestions
+    result = start_challenge(criterion, resume_text)
+    initial_message = result["message"]
+    suggestions = result["suggestions"]
 
     # Create challenge session
     challenge = ChallengeSession(
@@ -139,6 +141,7 @@ async def challenge_start(session_id: str, criterion_name: str):
     return {
         "messages": [m.model_dump() for m in challenge.messages],
         "criterion": criterion.model_dump(),
+        "suggestions": suggestions,
     }
 
 
@@ -159,10 +162,12 @@ async def challenge_chat(session_id: str, criterion_name: str, body: ChatRequest
     # Get resume text for context
     resume_text = session.get("parsed_resume", {}).get("raw_text", "")
 
-    # Process message and get response
-    assistant_response = process_chat_message(
+    # Process message and get response with suggestions
+    result = process_chat_message(
         challenge.messages, criterion, resume_text, body.message
     )
+    assistant_response = result["message"]
+    suggestions = result["suggestions"]
 
     # Update chat history
     challenge.messages.append(ChatMessage(role="user", content=body.message))
@@ -172,6 +177,7 @@ async def challenge_chat(session_id: str, criterion_name: str, body: ChatRequest
     return {
         "messages": [m.model_dump() for m in challenge.messages],
         "assistant_message": assistant_response,
+        "suggestions": suggestions,
     }
 
 
