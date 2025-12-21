@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mentor Matching - O-1 Visa Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600">O-1 Visa Analyzer</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/results/demo" class="text-gray-700 hover:text-blue-600">Demo</a>
+                    <a href="/mentors" class="text-blue-600 font-medium">Mentors</a>
+                    <a href="/experts" class="text-gray-700 hover:text-blue-600">Experts</a>
+                    <a href="/community" class="text-gray-700 hover:text-blue-600">Community</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Find an O-1 Mentor</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Connect with successful O-1 visa holders who can guide you through the application process
+                and help you build your extraordinary ability case.
+            </p>
+        </div>
+
+        <!-- Search Form -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Find Your Mentor</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Field *</label>
+                    <select id="fieldSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a field...</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Medicine">Medicine</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Arts">Arts</option>
+                        <option value="Business">Business</option>
+                        <option value="Education">Education</option>
+                        <option value="Athletics">Athletics</option>
+                        <option value="Film/TV">Film/TV</option>
+                        <option value="Science">Science</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Subfield (Optional)</label>
+                    <input type="text" id="subfieldInput" placeholder="e.g., AI/ML, Cardiology"
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="findMentors()" id="searchButton"
+                            class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Find Mentors
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Recommended Mentors</h2>
+            <div id="mentorsList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Mentors will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Finding the best mentors for you...</p>
+        </div>
+
+        <!-- Become a Mentor CTA -->
+        <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-8 mt-12 text-center text-white">
+            <h2 class="text-2xl font-bold mb-4">Are You a Successful O-1 Holder?</h2>
+            <p class="text-lg mb-6 opacity-90">
+                Share your experience and help others navigate the O-1 visa process.
+                Join our mentor network and make a difference in someone's career.
+            </p>
+            <button class="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                Become a Mentor
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function findMentors() {
+            const field = document.getElementById('fieldSelect').value;
+            const subfield = document.getElementById('subfieldInput').value;
+
+            if (!field) {
+                alert('Please select a field');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('searchButton').disabled = true;
+
+            try {
+                const response = await fetch(`/api/mentors?field=${encodeURIComponent(field)}&subfield=${encodeURIComponent(subfield)}`);
+                const data = await response.json();
+
+                displayMentors(data.mentors);
+            } catch (error) {
+                console.error('Error finding mentors:', error);
+                alert('Failed to find mentors. Please try again.');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('searchButton').disabled = false;
+            }
+        }
+
+        function displayMentors(mentors) {
+            const container = document.getElementById('mentorsList');
+            const section = document.getElementById('resultsSection');
+
+            if (mentors.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="text-gray-400 mb-4">
+                            <svg class="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No mentors found</h3>
+                        <p class="text-gray-600">Try adjusting your search criteria or check back later.</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = mentors.map(mentor => `
+                    <div class="bg-white rounded-lg shadow-md p-6 fade-in">
+                        <div class="flex items-start justify-between mb-4">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">${mentor.name}</h3>
+                                <p class="text-sm text-gray-600">${mentor.field}${mentor.subfield ? ` • ${mentor.subfield}` : ''}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm text-gray-500">${mentor.years_experience} years exp.</div>
+                                <div class="text-xs text-green-600 font-medium">O-1 ${mentor.o1_approval_year}</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="flex items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Relevance:</span>
+                                <div class="ml-2 flex-1 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.round(mentor.relevance_score * 100)}%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-600">${Math.round(mentor.relevance_score * 100)}%</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Can help with:</h4>
+                            <div class="flex flex-wrap gap-1">
+                                ${mentor.key_qualifications.map(qual => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${qual}</span>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-600">
+                                <span class="font-medium">Availability:</span> ${mentor.availability}
+                            </div>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                                Connect
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            section.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "mentor_001",
+    "name": "Dr. Sarah Chen",
+    "field": "Computer Science",
+    "subfield": "AI/ML",
+    "years_experience": 15,
+    "o1_approval_year": 2020,
+    "location": "San Francisco, CA",
+    "languages": [
+      "English",
+      "Mandarin"
+    ],
+    "availability": "high",
+    "mentoring_topics": [
+      "O-1 application process",
+      "Building extraordinary ability evidence",
+      "Consultation letters"
+    ],
+    "contact_method": "platform",
+    "created_at": "2025-12-21 14:47:04.382859",
+    "is_active": true
+  },
+  {
+    "id": "mentor_002",
+    "name": "Prof. Michael Rodriguez",
+    "field": "Medicine",
+    "subfield": "Neurosurgery",
+    "years_experience": 20,
+    "o1_approval_year": 2019,
+    "location": "Boston, MA",
+    "languages": [
+      "English",
+      "Spanish"
+    ],
+    "availability": "medium",
+    "mentoring_topics": [
+      "Medical research",
+      "Surgical innovation",
+      "Academic publishing"
+    ],
+    "contact_method": "platform",
+    "created_at": "2025-12-21 14:47:04.382859",
+    "is_active": true
+  }
+]

@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expert Reviewers - O-1 Visa Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .star-rating {
+            color: #fbbf24;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-xl font-bold text-blue-600">O-1 Visa Analyzer</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/results/demo" class="text-gray-700 hover:text-blue-600">Demo</a>
+                    <a href="/mentors" class="text-gray-700 hover:text-blue-600">Mentors</a>
+                    <a href="/experts" class="text-blue-600 font-medium">Experts</a>
+                    <a href="/community" class="text-gray-700 hover:text-blue-600">Community</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="text-center mb-10">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Expert Reviewer Database</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Find qualified experts who can provide consultation letters for your O-1 visa application.
+                All experts are verified professionals in their fields.
+            </p>
+        </div>
+
+        <!-- Search Form -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Find Expert Reviewers</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Field *</label>
+                    <select id="fieldSelect" class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="">Select a field...</option>
+                        <option value="Computer Science">Computer Science</option>
+                        <option value="Medicine">Medicine</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Arts">Arts</option>
+                        <option value="Business">Business</option>
+                        <option value="Education">Education</option>
+                        <option value="Athletics">Athletics</option>
+                        <option value="Film/TV">Film/TV</option>
+                        <option value="Science">Science</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Subfield (Optional)</label>
+                    <input type="text" id="subfieldInput" placeholder="e.g., AI/ML, Cardiology"
+                           class="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div class="flex items-end">
+                    <button onclick="findExperts()" id="searchButton"
+                            class="w-full bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Find Experts
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Recommended Expert Reviewers</h2>
+            <div id="expertsList" class="space-y-6">
+                <!-- Experts will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="hidden text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Finding qualified experts...</p>
+        </div>
+
+        <!-- Expert Application CTA -->
+        <div class="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-8 mt-12 text-center text-white">
+            <h2 class="text-2xl font-bold mb-4">Are You an Expert in Your Field?</h2>
+            <p class="text-lg mb-6 opacity-90">
+                Join our network of verified expert reviewers. Help O-1 applicants by providing
+                consultation letters and earn additional income from your expertise.
+            </p>
+            <button class="bg-white text-purple-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors">
+                Apply to Become an Expert
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function renderStars(rating) {
+            if (!rating) return '';
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            let stars = '';
+            for (let i = 0; i < fullStars; i++) {
+                stars += '★';
+            }
+            if (hasHalfStar) stars += '☆';
+            return stars;
+        }
+
+        async function findExperts() {
+            const field = document.getElementById('fieldSelect').value;
+            const subfield = document.getElementById('subfieldInput').value;
+
+            if (!field) {
+                alert('Please select a field');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('loadingState').classList.remove('hidden');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('searchButton').disabled = true;
+
+            try {
+                const response = await fetch(`/api/experts?field=${encodeURIComponent(field)}&subfield=${encodeURIComponent(subfield)}`);
+                const data = await response.json();
+
+                displayExperts(data.experts);
+            } catch (error) {
+                console.error('Error finding experts:', error);
+                alert('Failed to find experts. Please try again.');
+            } finally {
+                document.getElementById('loadingState').classList.add('hidden');
+                document.getElementById('searchButton').disabled = false;
+            }
+        }
+
+        function displayExperts(experts) {
+            const container = document.getElementById('expertsList');
+            const section = document.getElementById('resultsSection');
+
+            if (experts.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <div class="text-gray-400 mb-4">
+                            <svg class="w-16 h-16 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No experts found</h3>
+                        <p class="text-gray-600">Try adjusting your search criteria or check back later.</p>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = experts.map(expert => `
+                    <div class="bg-white rounded-lg shadow-md p-6 fade-in">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2">
+                                    <h3 class="text-xl font-semibold text-gray-900">${expert.name}</h3>
+                                    ${expert.verified ? '<span class="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Verified</span>' : ''}
+                                </div>
+                                <p class="text-gray-600 mb-2">${expert.credentials}</p>
+                                <p class="text-sm text-gray-500">${expert.institution} • ${expert.position}</p>
+                            </div>
+                            <div class="text-right">
+                                ${expert.rating ? `
+                                    <div class="flex items-center mb-1">
+                                        <span class="star-rating mr-1">${renderStars(expert.rating)}</span>
+                                        <span class="text-sm text-gray-600">${expert.rating} (${expert.review_count})</span>
+                                    </div>
+                                ` : ''}
+                                <div class="text-sm text-gray-500">${expert.years_experience} years</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Publications</div>
+                                <div class="text-lg text-blue-600">${expert.publications || 'N/A'}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Response Time</div>
+                                <div class="text-lg text-green-600">${expert.response_time}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-700">Fee Range</div>
+                                <div class="text-lg text-purple-600">${expert.fee_range}</div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="flex items-center mb-2">
+                                <span class="text-sm font-medium text-gray-700">Relevance:</span>
+                                <div class="ml-2 flex-1 bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: ${Math.round(expert.relevance_score * 100)}%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-600">${Math.round(expert.relevance_score * 100)}%</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Key Qualifications:</h4>
+                            <div class="flex flex-wrap gap-1">
+                                ${expert.key_qualifications.map(qual => `<span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">${qual}</span>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-600">
+                                ${expert.contact_info}
+                            </div>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors">
+                                Request Consultation
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            section.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>

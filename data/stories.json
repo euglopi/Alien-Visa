@@ -1,0 +1,29 @@
+[
+  {
+    "id": "story_001",
+    "field": "Computer Science",
+    "subfield": "AI/ML",
+    "approval_timeline": "10 months",
+    "key_success_factors": [
+      "Published 12 papers in top conferences",
+      "Received 2 prestigious awards",
+      "Consultation letter from Turing Award winner"
+    ],
+    "challenges_overcome": [
+      "Initial rejection due to insufficient evidence",
+      "Difficulty finding qualified expert reviewers"
+    ],
+    "advice_for_others": "Start building your publication record early. Focus on high-impact conferences and journals. Network extensively to get strong consultation letters.",
+    "criteria_met": [
+      "Awards",
+      "Published Material",
+      "Original Contributions",
+      "Scholarly Articles",
+      "High Salary"
+    ],
+    "assessment_score": 7,
+    "approval_year": 2023,
+    "created_at": "2025-12-21 14:47:04.382859",
+    "helpful_votes": 45
+  }
+]
