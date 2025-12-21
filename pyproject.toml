@@ -12,7 +12,9 @@ dependencies = [
     "pydantic",
     "orjson",
     "openai",
-    "docling",
+    "pymupdf",
+    "python-docx",
+    "python-dotenv",
 ]
 
 [dependency-groups]
