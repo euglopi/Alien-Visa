@@ -213,24 +213,19 @@ def _format_criteria_details(criterion_name: str) -> str:
     return "\n\n".join(sections)
 
 
-def start_challenge(criterion: CriterionEvidence, resume_text: str) -> str:
-    """Generate initial educational message about the criterion.
+def start_challenge(criterion: CriterionEvidence, resume_text: str) -> dict:
+    """Generate initial educational message and prompt suggestions.
 
     Args:
         criterion: The criterion being challenged
         resume_text: Raw text from the parsed resume
 
     Returns:
-        Initial assistant message with education + opening question
+        Dict with 'message' (initial assistant message) and 'suggestions' (list of prompt suggestions)
     """
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     status = "MET" if criterion.met else "NOT MET"
-    evidence_info = (
-        f"Evidence found: {criterion.evidence}"
-        if criterion.evidence
-        else "No specific evidence was found in your resume."
-    )
 
     system_prompt = f"""You are a friendly O-1A visa advisor having a casual conversation.
 
@@ -240,12 +235,22 @@ USCIS DEFINITION: "{O1A_CRITERIA_DETAILS.get(criterion.name, {}).get('regulatory
 CURRENT STATUS: {status}
 REASONING: {criterion.reasoning}
 
-YOUR FIRST MESSAGE (keep it under 50 words total):
-1. One sentence: what this criterion is looking for in plain English
-2. One sentence: why it's currently marked {status}
-3. One conversational question to explore if they have relevant evidence
+Respond with JSON in this exact format:
+{{
+  "message": "Your first message (under 50 words). One sentence about what this criterion looks for. One sentence about why it's {status}. One conversational question to explore evidence.",
+  "suggestions": ["Short question 1?", "Short question 2?", "Short question 3?"]
+}}
 
-DO NOT use markdown headers, bullet points, or numbered lists. Write like you're texting a friend - casual, warm, direct. No formal greetings."""
+MESSAGE GUIDELINES:
+- Write like you're texting a friend - casual, warm, direct
+- No markdown, bullet points, or formal greetings
+
+SUGGESTIONS GUIDELINES (these are things the USER might ask YOU):
+- 2-3 short questions (under 8 words each)
+- Written from the user's perspective, as if they're asking you
+- Specific to the "{criterion.name}" criterion and their {status} status
+- Examples: "How can I improve my score?", "What evidence are you looking for?", "Does my conference presentation count?"
+"""
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
@@ -256,10 +261,15 @@ DO NOT use markdown headers, bullet points, or numbered lists. Write like you're
                 "content": f"Resume context:\n{resume_text[:2000]}",
             },
         ],
-        max_tokens=200,
+        response_format={"type": "json_object"},
+        max_tokens=300,
     )
 
-    return response.choices[0].message.content
+    data = orjson.loads(response.choices[0].message.content)
+    return {
+        "message": data.get("message", ""),
+        "suggestions": data.get("suggestions", []),
+    }
 
 
 def process_chat_message(
@@ -267,8 +277,8 @@ def process_chat_message(
     criterion: CriterionEvidence,
     resume_text: str,
     user_message: str,
-) -> str:
-    """Process user message and generate assistant response.
+) -> dict:
+    """Process user message and generate assistant response with suggestions.
 
     Args:
         messages: Previous chat history
@@ -277,7 +287,7 @@ def process_chat_message(
         user_message: The new message from the user
 
     Returns:
-        Assistant's response message
+        Dict with 'message' (assistant response) and 'suggestions' (list of prompt suggestions)
     """
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -294,12 +304,24 @@ CURRENT STATUS: {status}
 USCIS GUIDANCE (for your reference, don't dump this on the user):
 {criteria_details}
 
-CONVERSATION STYLE:
+Respond with JSON in this exact format:
+{{
+  "message": "Your response (2-3 sentences max)",
+  "suggestions": ["Short question 1?", "Short question 2?", "Short question 3?"]
+}}
+
+MESSAGE STYLE:
 - Casual, like texting a knowledgeable friend
 - Ask ONE follow-up question at a time
 - When they share something relevant, acknowledge it briefly and dig deeper for specifics (names, numbers, dates, impact)
-- NO markdown formatting, NO bullet points, NO headers
-- After a few good exchanges, mention they can hit "Request Rescore" if they feel ready"""
+- After a few good exchanges, mention they can hit "Request Rescore" if they feel ready
+
+SUGGESTIONS (things the USER might ask YOU next):
+- 2-3 short questions (under 8 words each)
+- Written from the user's perspective
+- Relevant to what was just discussed
+- Examples: "How can I improve my score?", "What evidence are you looking for?", "Does that count as evidence?"
+"""
 
     # Build message history for the API
     api_messages = [{"role": "system", "content": system_prompt}]
@@ -310,10 +332,15 @@ CONVERSATION STYLE:
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=api_messages,
-        max_tokens=300,
+        response_format={"type": "json_object"},
+        max_tokens=400,
     )
 
-    return response.choices[0].message.content
+    data = orjson.loads(response.choices[0].message.content)
+    return {
+        "message": data.get("message", ""),
+        "suggestions": data.get("suggestions", []),
+    }
 
 
 def rescore_criterion(

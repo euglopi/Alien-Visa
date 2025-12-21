@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -23,6 +24,7 @@ class ChatRequest(BaseModel):
 
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
 
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 network_service = NetworkService()
 
@@ -77,12 +79,7 @@ async def upload(request: Request, resume: UploadFile):
 async def results(request: Request, session_id: str):
     session = sessions.get(session_id)
     if not session:
-        return templates.TemplateResponse(
-            request,
-            "base.html",
-            {"title": "Not Found"},
-            status_code=404,
-        )
+        return RedirectResponse(url="/", status_code=302)
 
     assessment = O1Assessment(**session["assessment"])
     score, tier = calculate_score(assessment)
@@ -131,8 +128,10 @@ async def challenge_start(session_id: str, criterion_name: str):
     # Get resume text for context
     resume_text = session.get("parsed_resume", {}).get("raw_text", "")
 
-    # Generate initial educational message
-    initial_message = start_challenge(criterion, resume_text)
+    # Generate initial educational message and suggestions
+    result = start_challenge(criterion, resume_text)
+    initial_message = result["message"]
+    suggestions = result["suggestions"]
 
     # Create challenge session
     challenge = ChallengeSession(
@@ -144,6 +143,7 @@ async def challenge_start(session_id: str, criterion_name: str):
     return {
         "messages": [m.model_dump() for m in challenge.messages],
         "criterion": criterion.model_dump(),
+        "suggestions": suggestions,
     }
 
 
@@ -164,10 +164,12 @@ async def challenge_chat(session_id: str, criterion_name: str, body: ChatRequest
     # Get resume text for context
     resume_text = session.get("parsed_resume", {}).get("raw_text", "")
 
-    # Process message and get response
-    assistant_response = process_chat_message(
+    # Process message and get response with suggestions
+    result = process_chat_message(
         challenge.messages, criterion, resume_text, body.message
     )
+    assistant_response = result["message"]
+    suggestions = result["suggestions"]
 
     # Update chat history
     challenge.messages.append(ChatMessage(role="user", content=body.message))
@@ -177,6 +179,7 @@ async def challenge_chat(session_id: str, criterion_name: str, body: ChatRequest
     return {
         "messages": [m.model_dump() for m in challenge.messages],
         "assistant_message": assistant_response,
+        "suggestions": suggestions,
     }
 
 

@@ -13,3 +13,7 @@ test:
 # Run development server
 dev:
     uv run uvicorn main:app --reload
+
+# Nuke the database for a clean start
+nuke-db:
+    rm -f cache.db
