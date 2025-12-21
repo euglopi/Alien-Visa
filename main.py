@@ -11,6 +11,7 @@ from models.resume import ParsedResume
 from services.analyzer import analyze_resume
 from services.challenger import process_chat_message, rescore_criterion, start_challenge
 from services.database import cache_result, get_cached_result, get_content_hash
+from services.network import NetworkService
 from services.parser import parse_resume
 from services.scorer import calculate_score
 
@@ -23,6 +24,7 @@ class ChatRequest(BaseModel):
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+network_service = NetworkService()
 
 # In-memory session store (lost on restart)
 sessions: dict[str, dict] = {}
@@ -217,3 +219,73 @@ async def challenge_rescore(session_id: str, criterion_name: str):
         "new_score": new_score,
         "new_tier": new_tier,
     }
+
+
+# Network and Community Features
+@app.get("/api/mentors")
+async def get_mentors(field: str, subfield: str = None, limit: int = 5):
+    """Find relevant mentors for a given field."""
+    try:
+        mentors = network_service.find_mentors(field, subfield, limit)
+        return {"mentors": [m.model_dump() for m in mentors]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to find mentors: {str(e)}")
+
+
+@app.get("/api/experts")
+async def get_experts(field: str, subfield: str = None, limit: int = 5):
+    """Find relevant expert reviewers for consultation letters."""
+    try:
+        experts = network_service.find_experts(field, subfield, limit)
+        return {"experts": [e.model_dump() for e in experts]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to find experts: {str(e)}")
+
+
+@app.get("/api/success-stories")
+async def get_success_stories(field: str = None, min_score: int = 0, limit: int = 10):
+    """Get relevant success stories."""
+    try:
+        stories = network_service.get_success_stories(field, min_score, limit)
+        return {"stories": [s.model_dump() for s in stories]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get success stories: {str(e)}")
+
+
+@app.get("/api/forum-posts")
+async def get_forum_posts(field: str = None, tag: str = None, limit: int = 20):
+    """Get forum posts, optionally filtered by field or tag."""
+    try:
+        posts = network_service.get_forum_posts(field, tag, limit)
+        return {"posts": [p.model_dump() for p in posts]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get forum posts: {str(e)}")
+
+
+@app.post("/api/seed-sample-data")
+async def seed_sample_data():
+    """Seed sample data for development (admin only)."""
+    try:
+        network_service.seed_sample_data()
+        return {"message": "Sample data seeded successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to seed data: {str(e)}")
+
+
+# Network pages
+@app.get("/mentors")
+async def mentors_page(request: Request):
+    """Mentor matching page."""
+    return templates.TemplateResponse(request, "mentors.html")
+
+
+@app.get("/experts")
+async def experts_page(request: Request):
+    """Expert reviewer database page."""
+    return templates.TemplateResponse(request, "experts.html")
+
+
+@app.get("/community")
+async def community_page(request: Request):
+    """Community features page."""
+    return templates.TemplateResponse(request, "community.html")
