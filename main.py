@@ -1,6 +1,17 @@
-def main():
-    print("Hello from alien!")
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.templating import Jinja2Templates
+
+app = FastAPI(title="O-1 Visa Readiness Analyzer")
+
+templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 
-if __name__ == "__main__":
-    main()
+@app.get("/")
+async def index(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "base.html",
+        {"title": "Hello World"},
+    )
