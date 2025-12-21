@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
@@ -22,6 +23,7 @@ class ChatRequest(BaseModel):
 
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
 
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 # In-memory session store (lost on restart)
@@ -75,12 +77,7 @@ async def upload(request: Request, resume: UploadFile):
 async def results(request: Request, session_id: str):
     session = sessions.get(session_id)
     if not session:
-        return templates.TemplateResponse(
-            request,
-            "base.html",
-            {"title": "Not Found"},
-            status_code=404,
-        )
+        return RedirectResponse(url="/", status_code=302)
 
     assessment = O1Assessment(**session["assessment"])
     score, tier = calculate_score(assessment)

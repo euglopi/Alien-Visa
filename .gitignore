@@ -12,3 +12,4 @@ wheels/
 
 # SQLite cache
 cache.db
+.DS_Store

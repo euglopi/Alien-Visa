@@ -6,8 +6,17 @@
 <!-- Loading Overlay -->
 <div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden items-center justify-center z-50">
     <div class="text-center">
-        <!-- Spinner -->
-        <div class="inline-block w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <!-- Pulsing Alien -->
+        <style>
+            @keyframes pulse-zoom {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.15); }
+            }
+            .animate-pulse-zoom {
+                animation: pulse-zoom 1.2s ease-in-out infinite;
+            }
+        </style>
+        <img src="/static/alien.png" alt="Analyzing..." class="h-24 mx-auto animate-pulse-zoom mb-6">
 
         <h2 class="text-2xl font-semibold text-white mb-3">Analyzing your resume</h2>
         <p id="loading-subtitle" class="text-lg text-blue-200 transition-opacity duration-300">

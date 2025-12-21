@@ -183,7 +183,7 @@
         <button
             id="rescore-btn"
             onclick="requestRescore()"
-            class="mt-3 w-full border-2 border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium hidden disabled:opacity-50 disabled:cursor-not-allowed">
+            class="mt-3 w-full border-2 border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
             Request Rescore
         </button>
     </div>
@@ -202,7 +202,10 @@ async function openChallengePanel(criterionName) {
 
     document.getElementById('challenge-title').textContent = `Challenge: ${criterionName}`;
     document.getElementById('chat-messages').innerHTML = '';
-    document.getElementById('rescore-btn').classList.add('hidden');
+    document.getElementById('rescore-btn').disabled = false;
+    document.getElementById('rescore-btn').textContent = 'Request Rescore';
+    document.getElementById('rescore-btn').classList.remove('border-gray-400', 'text-gray-400');
+    document.getElementById('rescore-btn').classList.add('border-green-600', 'text-green-600', 'hover:bg-green-50');
     document.getElementById('chat-input').value = '';
 
     // Show panel with animation
@@ -273,11 +276,6 @@ async function sendMessage() {
         const data = await response.json();
         addMessageToChat('assistant', data.assistant_message);
         messageCount++;
-
-        // Show rescore button after 2 exchanges
-        if (messageCount >= 2) {
-            document.getElementById('rescore-btn').classList.remove('hidden');
-        }
     } catch (error) {
         addMessageToChat('assistant', 'Sorry, there was an error processing your message. Please try again.');
         console.error('Error:', error);
@@ -304,9 +302,11 @@ async function requestRescore() {
         const data = await response.json();
 
         if (data.success) {
+            // Update the score summary first (most important)
+            updateScoreSummary(data.new_score, data.new_tier);
+
             // Update the criterion card on the page
             updateCriterionCard(currentCriterion, data.criterion);
-            updateScoreSummary(data.new_score, data.new_tier);
             markAsChallenged(currentCriterion);
 
             // Show success message in chat
@@ -367,32 +367,38 @@ function updateCriterionCard(criterionName, newData) {
     const reasoningP = card.querySelector('.criterion-reasoning');
 
     // Update icon
-    if (newData.met) {
-        iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100';
-        iconContainer.innerHTML = `<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-        </svg>`;
-    } else {
-        iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100';
-        iconContainer.innerHTML = `<svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-        </svg>`;
+    if (iconContainer) {
+        if (newData.met) {
+            iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100';
+            iconContainer.innerHTML = `<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>`;
+        } else {
+            iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100';
+            iconContainer.innerHTML = `<svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>`;
+        }
     }
 
     // Update evidence
-    if (newData.evidence) {
-        evidenceContainer.classList.remove('hidden');
-        evidenceSpan.textContent = newData.evidence;
-    } else {
-        evidenceContainer.classList.add('hidden');
+    if (evidenceContainer && evidenceSpan) {
+        if (newData.evidence) {
+            evidenceContainer.classList.remove('hidden');
+            evidenceSpan.textContent = newData.evidence;
+        } else {
+            evidenceContainer.classList.add('hidden');
+        }
     }
 
     // Update reasoning
-    if (newData.reasoning) {
-        reasoningP.classList.remove('hidden');
-        reasoningP.textContent = newData.reasoning;
-    } else {
-        reasoningP.classList.add('hidden');
+    if (reasoningP) {
+        if (newData.reasoning) {
+            reasoningP.classList.remove('hidden');
+            reasoningP.textContent = newData.reasoning;
+        } else {
+            reasoningP.classList.add('hidden');
+        }
     }
 }
 
