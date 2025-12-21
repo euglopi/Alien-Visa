@@ -10,55 +10,80 @@
             <p class="text-gray-600">Based on your uploaded resume</p>
         </div>
 
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div id="summary-card" class="bg-white rounded-lg shadow-md p-6 mb-6">
             <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xl font-semibold text-gray-800">Summary</h2>
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
-                    {{ criteria_met }}/8 Criteria Met
+                <span id="tier-badge" class="px-4 py-1 rounded-full text-sm font-bold
+                    {% if tier == 'Strong' %}bg-green-100 text-green-800 border border-green-300{% elif tier == 'Moderate' %}bg-yellow-100 text-yellow-800 border border-yellow-300{% else %}bg-red-100 text-red-800 border border-red-300{% endif %}">
+                    {% if tier == "Strong" %}Strong Case{% elif tier == "Moderate" %}Moderate Case{% else %}Needs Work{% endif %}
                 </span>
             </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Criteria Met</span>
+                    <span id="criteria-count" class="font-medium">{{ criteria_met }}/8</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progress-bar" class="h-3 rounded-full transition-all
+                        {% if tier == 'Strong' %}bg-green-500{% elif tier == 'Moderate' %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+                        style="width: {{ (criteria_met / 8) * 100 }}%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>0</span>
+                    <span class="text-gray-500">3 required</span>
+                    <span>8</span>
+                </div>
+            </div>
+
             <p class="text-gray-600">
                 You need to meet at least 3 of the 8 criteria to qualify for an O-1A visa.
-                {% if criteria_met >= 3 %}
-                <span class="text-green-600 font-medium">You appear to meet the minimum threshold.</span>
-                {% else %}
-                <span class="text-red-600 font-medium">You may need to strengthen your profile.</span>
-                {% endif %}
+                <span id="tier-message" class="font-medium
+                    {% if tier == 'Strong' %}text-green-600{% elif tier == 'Moderate' %}text-yellow-600{% else %}text-red-600{% endif %}">
+                    {% if tier == "Strong" %}You exceed the minimum threshold with a strong case.
+                    {% elif tier == "Moderate" %}You meet the minimum threshold. Consider strengthening additional criteria.
+                    {% else %}You may need to strengthen your profile to meet the minimum threshold.{% endif %}
+                </span>
             </p>
         </div>
 
-        <div class="space-y-4">
+        <div id="criteria-list" class="space-y-4">
             {% for criterion in criteria %}
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6" data-criterion="{{ criterion.name }}">
                 <div class="flex items-start gap-4">
                     <div class="flex-shrink-0 mt-1">
-                        {% if criterion.met %}
-                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100">
+                        <span class="criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full {% if criterion.met %}bg-green-100{% else %}bg-red-100{% endif %}">
+                            {% if criterion.met %}
                             <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                        </span>
-                        {% else %}
-                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100">
+                            {% else %}
                             <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
+                            {% endif %}
                         </span>
-                        {% endif %}
                     </div>
                     <div class="flex-1">
-                        <h3 class="font-semibold text-gray-900">{{ criterion.name }}</h3>
-                        <p class="text-sm text-gray-500 mb-2">{{ criterion.description }}</p>
-                        {% if criterion.evidence %}
-                        <div class="mt-2 p-3 bg-gray-50 rounded-md">
-                            <p class="text-sm text-gray-700">
-                                <span class="font-medium">Evidence:</span> {{ criterion.evidence }}
-                            </p>
+                        <h3 class="font-semibold text-gray-900 criterion-name">{{ criterion.name }}</h3>
+                        <p class="text-sm text-gray-500 mb-2 criterion-description">{{ criterion.description }}</p>
+                        <div class="evidence-container {% if not criterion.evidence %}hidden{% endif %}">
+                            <div class="mt-2 p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-700">
+                                    <span class="font-medium">Evidence:</span> <span class="criterion-evidence">{{ criterion.evidence }}</span>
+                                </p>
+                            </div>
                         </div>
-                        {% endif %}
-                        {% if criterion.reasoning %}
-                        <p class="mt-2 text-sm text-gray-500 italic">{{ criterion.reasoning }}</p>
-                        {% endif %}
+                        <p class="mt-2 text-sm text-gray-500 italic criterion-reasoning {% if not criterion.reasoning %}hidden{% endif %}">{{ criterion.reasoning }}</p>
+
+                        <button
+                            onclick="openChallengePanel('{{ criterion.name }}')"
+                            class="mt-3 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                            </svg>
+                            Challenge this assessment
+                        </button>
                     </div>
                 </div>
             </div>
@@ -100,4 +125,347 @@
         </div>
     </div>
 </div>
+
+<!-- Challenge Sidebar Overlay -->
+<div id="challenge-overlay"
+     class="fixed inset-0 bg-black/50 hidden z-40 transition-opacity"
+     onclick="closeChallengePanel()"></div>
+
+<!-- Challenge Sidebar Panel -->
+<div id="challenge-panel"
+     class="fixed top-0 right-0 h-full w-full md:w-[450px] bg-white shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out z-50 flex flex-col">
+
+    <!-- Header -->
+    <div class="p-4 border-b flex justify-between items-center bg-gray-50">
+        <div>
+            <h2 id="challenge-title" class="font-semibold text-lg text-gray-900">Challenge: Awards</h2>
+            <p class="text-sm text-gray-500">Explore evidence for this criterion</p>
+        </div>
+        <button onclick="closeChallengePanel()" class="text-gray-400 hover:text-gray-600 p-1">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4">
+        <!-- Messages will be rendered here -->
+    </div>
+
+    <!-- Loading indicator -->
+    <div id="chat-loading" class="hidden px-4 py-2">
+        <div class="flex items-center gap-2 text-gray-500">
+            <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span class="text-sm">Thinking...</span>
+        </div>
+    </div>
+
+    <!-- Input Area -->
+    <div class="p-4 border-t bg-gray-50">
+        <div class="flex gap-2">
+            <input
+                type="text"
+                id="chat-input"
+                class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Type your response..."
+                onkeypress="handleChatKeypress(event)">
+            <button
+                id="send-btn"
+                onclick="sendMessage()"
+                class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                Send
+            </button>
+        </div>
+        <button
+            id="rescore-btn"
+            onclick="requestRescore()"
+            class="mt-3 w-full border-2 border-green-600 text-green-600 px-4 py-2 rounded-lg hover:bg-green-50 transition-colors font-medium hidden disabled:opacity-50 disabled:cursor-not-allowed">
+            Request Rescore
+        </button>
+    </div>
+</div>
+
+<script>
+// State
+const sessionId = "{{ session_id }}";
+let currentCriterion = null;
+let messageCount = 0;
+
+// Open challenge panel
+async function openChallengePanel(criterionName) {
+    currentCriterion = criterionName;
+    messageCount = 0;
+
+    document.getElementById('challenge-title').textContent = `Challenge: ${criterionName}`;
+    document.getElementById('chat-messages').innerHTML = '';
+    document.getElementById('rescore-btn').classList.add('hidden');
+    document.getElementById('chat-input').value = '';
+
+    // Show panel with animation
+    document.getElementById('challenge-overlay').classList.remove('hidden');
+    document.getElementById('challenge-panel').classList.remove('translate-x-full');
+    document.body.style.overflow = 'hidden';
+
+    // Show loading
+    setLoading(true);
+
+    try {
+        const response = await fetch(`/challenge/${sessionId}/${encodeURIComponent(criterionName)}/start`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) throw new Error('Failed to start challenge');
+
+        const data = await response.json();
+        renderMessages(data.messages);
+    } catch (error) {
+        addMessageToChat('assistant', 'Sorry, there was an error starting the challenge. Please try again.');
+        console.error('Error:', error);
+    } finally {
+        setLoading(false);
+        document.getElementById('chat-input').focus();
+    }
+}
+
+// Close challenge panel
+function closeChallengePanel() {
+    document.getElementById('challenge-overlay').classList.add('hidden');
+    document.getElementById('challenge-panel').classList.add('translate-x-full');
+    document.body.style.overflow = '';
+}
+
+// Handle Enter key in chat input
+function handleChatKeypress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+// Send user message
+async function sendMessage() {
+    const input = document.getElementById('chat-input');
+    const message = input.value.trim();
+    if (!message) return;
+
+    input.value = '';
+    setInputDisabled(true);
+
+    // Add user message immediately
+    addMessageToChat('user', message);
+    messageCount++;
+
+    setLoading(true);
+
+    try {
+        const response = await fetch(`/challenge/${sessionId}/${encodeURIComponent(currentCriterion)}/chat`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ message })
+        });
+
+        if (!response.ok) throw new Error('Failed to send message');
+
+        const data = await response.json();
+        addMessageToChat('assistant', data.assistant_message);
+        messageCount++;
+
+        // Show rescore button after 2 exchanges
+        if (messageCount >= 2) {
+            document.getElementById('rescore-btn').classList.remove('hidden');
+        }
+    } catch (error) {
+        addMessageToChat('assistant', 'Sorry, there was an error processing your message. Please try again.');
+        console.error('Error:', error);
+    } finally {
+        setLoading(false);
+        setInputDisabled(false);
+        input.focus();
+    }
+}
+
+// Request rescore
+async function requestRescore() {
+    const rescoreBtn = document.getElementById('rescore-btn');
+    rescoreBtn.disabled = true;
+    rescoreBtn.textContent = 'Rescoring...';
+
+    try {
+        const response = await fetch(`/challenge/${sessionId}/${encodeURIComponent(currentCriterion)}/rescore`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) throw new Error('Failed to rescore');
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update the criterion card on the page
+            updateCriterionCard(currentCriterion, data.criterion);
+            updateScoreSummary(data.new_score, data.new_tier);
+            markAsChallenged(currentCriterion);
+
+            // Show success message in chat
+            const statusText = data.criterion.met ? 'MET' : 'NOT MET';
+            addMessageToChat('assistant', `Assessment updated! This criterion is now marked as **${statusText}**.\n\n**Updated reasoning:** ${data.criterion.reasoning}`);
+
+            rescoreBtn.textContent = 'Rescore Complete';
+            rescoreBtn.classList.remove('border-green-600', 'text-green-600', 'hover:bg-green-50');
+            rescoreBtn.classList.add('border-gray-400', 'text-gray-400');
+        }
+    } catch (error) {
+        addMessageToChat('assistant', 'Sorry, there was an error rescoring. Please try again.');
+        rescoreBtn.disabled = false;
+        rescoreBtn.textContent = 'Request Rescore';
+        console.error('Error:', error);
+    }
+}
+
+// Render all messages
+function renderMessages(messages) {
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = '';
+    messages.forEach(msg => addMessageToChat(msg.role, msg.content));
+}
+
+// Add a single message to chat
+function addMessageToChat(role, content) {
+    const container = document.getElementById('chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = role === 'user'
+        ? 'max-w-[85%] bg-blue-600 text-white rounded-2xl rounded-br-md px-4 py-2'
+        : 'max-w-[85%] bg-gray-100 text-gray-800 rounded-2xl rounded-bl-md px-4 py-2';
+
+    // Simple markdown-like formatting
+    let formatted = content
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+
+    bubble.innerHTML = `<p class="text-sm whitespace-pre-wrap">${formatted}</p>`;
+    messageDiv.appendChild(bubble);
+    container.appendChild(messageDiv);
+
+    // Scroll to bottom
+    container.scrollTop = container.scrollHeight;
+}
+
+// Update criterion card after rescore
+function updateCriterionCard(criterionName, newData) {
+    const card = document.querySelector(`[data-criterion="${criterionName}"]`);
+    if (!card) return;
+
+    const iconContainer = card.querySelector('.criterion-icon');
+    const evidenceContainer = card.querySelector('.evidence-container');
+    const evidenceSpan = card.querySelector('.criterion-evidence');
+    const reasoningP = card.querySelector('.criterion-reasoning');
+
+    // Update icon
+    if (newData.met) {
+        iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-green-100';
+        iconContainer.innerHTML = `<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>`;
+    } else {
+        iconContainer.className = 'criterion-icon inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-100';
+        iconContainer.innerHTML = `<svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>`;
+    }
+
+    // Update evidence
+    if (newData.evidence) {
+        evidenceContainer.classList.remove('hidden');
+        evidenceSpan.textContent = newData.evidence;
+    } else {
+        evidenceContainer.classList.add('hidden');
+    }
+
+    // Update reasoning
+    if (newData.reasoning) {
+        reasoningP.classList.remove('hidden');
+        reasoningP.textContent = newData.reasoning;
+    } else {
+        reasoningP.classList.add('hidden');
+    }
+}
+
+// Mark criterion as successfully challenged
+function markAsChallenged(criterionName) {
+    const card = document.querySelector(`[data-criterion="${criterionName}"]`);
+    if (!card || card.querySelector('.challenged-badge')) return;
+
+    const badge = document.createElement('span');
+    badge.className = 'challenged-badge inline-flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full mt-2';
+    badge.innerHTML = `
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        Successfully challenged
+    `;
+
+    const contentDiv = card.querySelector('.flex-1');
+    const challengeBtn = contentDiv.querySelector('button');
+    contentDiv.insertBefore(badge, challengeBtn);
+}
+
+// Update score summary after rescore
+function updateScoreSummary(newScore, newTier) {
+    // Update count
+    document.getElementById('criteria-count').textContent = `${newScore}/8`;
+
+    // Update progress bar
+    const progressBar = document.getElementById('progress-bar');
+    progressBar.style.width = `${(newScore / 8) * 100}%`;
+    progressBar.className = 'h-3 rounded-full transition-all ' +
+        (newTier === 'Strong' ? 'bg-green-500' : newTier === 'Moderate' ? 'bg-yellow-500' : 'bg-red-500');
+
+    // Update tier badge
+    const tierBadge = document.getElementById('tier-badge');
+    if (newTier === 'Strong') {
+        tierBadge.className = 'px-4 py-1 rounded-full text-sm font-bold bg-green-100 text-green-800 border border-green-300';
+        tierBadge.textContent = 'Strong Case';
+    } else if (newTier === 'Moderate') {
+        tierBadge.className = 'px-4 py-1 rounded-full text-sm font-bold bg-yellow-100 text-yellow-800 border border-yellow-300';
+        tierBadge.textContent = 'Moderate Case';
+    } else {
+        tierBadge.className = 'px-4 py-1 rounded-full text-sm font-bold bg-red-100 text-red-800 border border-red-300';
+        tierBadge.textContent = 'Needs Work';
+    }
+
+    // Update tier message
+    const tierMessage = document.getElementById('tier-message');
+    if (newTier === 'Strong') {
+        tierMessage.className = 'font-medium text-green-600';
+        tierMessage.textContent = 'You exceed the minimum threshold with a strong case.';
+    } else if (newTier === 'Moderate') {
+        tierMessage.className = 'font-medium text-yellow-600';
+        tierMessage.textContent = 'You meet the minimum threshold. Consider strengthening additional criteria.';
+    } else {
+        tierMessage.className = 'font-medium text-red-600';
+        tierMessage.textContent = 'You may need to strengthen your profile to meet the minimum threshold.';
+    }
+}
+
+// Helper functions
+function setLoading(loading) {
+    document.getElementById('chat-loading').classList.toggle('hidden', !loading);
+}
+
+function setInputDisabled(disabled) {
+    document.getElementById('chat-input').disabled = disabled;
+    document.getElementById('send-btn').disabled = disabled;
+}
+
+// Close panel on Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeChallengePanel();
+});
+</script>
 {% endblock %}
