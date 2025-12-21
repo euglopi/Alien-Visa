@@ -180,7 +180,9 @@ def _format_criteria_details(criterion_name: str) -> str:
     sections = []
 
     if "regulatory_language" in details:
-        sections.append(f"**USCIS Regulatory Language:**\n\"{details['regulatory_language']}\"")
+        sections.append(
+            f'**USCIS Regulatory Language:**\n"{details["regulatory_language"]}"'
+        )
 
     if "what_uscis_evaluates" in details:
         items = "\n".join(f"- {item}" for item in details["what_uscis_evaluates"])
@@ -230,7 +232,7 @@ def start_challenge(criterion: CriterionEvidence, resume_text: str) -> dict:
     system_prompt = f"""You are a friendly O-1A visa advisor having a casual conversation.
 
 CRITERION: "{criterion.name}"
-USCIS DEFINITION: "{O1A_CRITERIA_DETAILS.get(criterion.name, {}).get('regulatory_language', criterion.description)}"
+USCIS DEFINITION: "{O1A_CRITERIA_DETAILS.get(criterion.name, {}).get("regulatory_language", criterion.description)}"
 
 CURRENT STATUS: {status}
 REASONING: {criterion.reasoning}

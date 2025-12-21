@@ -1,17 +1,30 @@
 from pathlib import Path
 from uuid import uuid4
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from models.criteria import ChatMessage, ChallengeSession, CriterionEvidence, O1Assessment
+from models.criteria import (
+    ChatMessage,
+    ChallengeSession,
+    CriterionEvidence,
+    O1Assessment,
+)
 from models.network import MentorshipRequest
 from models.resume import ParsedResume
 from services.analyzer import analyze_resume
 from services.challenger import process_chat_message, rescore_criterion, start_challenge
+from services.voice import create_realtime_session
 from services.database import cache_result, get_cached_result, get_content_hash
 from services.network import NetworkService
 from services.parser import parse_resume
@@ -32,9 +45,12 @@ class MentorshipRequestBody(BaseModel):
     field: str
     message: str
 
+
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
 
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+app.mount(
+    "/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static"
+)
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 network_service = NetworkService()
 
@@ -117,9 +133,7 @@ def _get_session_and_criterion(
         raise HTTPException(status_code=404, detail="Session not found")
 
     assessment = O1Assessment(**session["assessment"])
-    criterion = next(
-        (c for c in assessment.criteria if c.name == criterion_name), None
-    )
+    criterion = next((c for c in assessment.criteria if c.name == criterion_name), None)
     if not criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
 
@@ -283,7 +297,9 @@ async def get_success_stories(field: str = None, min_score: int = 0, limit: int 
         stories = network_service.get_success_stories(field, min_score, limit)
         return {"stories": [s.model_dump() for s in stories]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get success stories: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get success stories: {str(e)}"
+        )
 
 
 @app.get("/api/forum-posts")
@@ -293,7 +309,9 @@ async def get_forum_posts(field: str = None, tag: str = None, limit: int = 20):
         posts = network_service.get_forum_posts(field, tag, limit)
         return {"posts": [p.model_dump() for p in posts]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get forum posts: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get forum posts: {str(e)}"
+        )
 
 
 @app.post("/api/seed-sample-data")
@@ -323,3 +341,47 @@ async def experts_page(request: Request):
 async def community_page(request: Request):
     """Community features page."""
     return templates.TemplateResponse(request, "community.html")
+
+
+@app.websocket("/voice/{session_id}/{criterion_name}")
+async def voice_challenge(websocket: WebSocket, session_id: str, criterion_name: str):
+    """WebSocket endpoint for voice-based criterion challenge."""
+    await websocket.accept()
+
+    try:
+        # Validate session and criterion
+        session = sessions.get(session_id)
+        if not session:
+            await websocket.send_json({"type": "error", "message": "Session not found"})
+            await websocket.close()
+            return
+
+        assessment = O1Assessment(**session["assessment"])
+        criterion = next(
+            (c for c in assessment.criteria if c.name == criterion_name), None
+        )
+        if not criterion:
+            await websocket.send_json(
+                {"type": "error", "message": "Criterion not found"}
+            )
+            await websocket.close()
+            return
+
+        # Get resume text for context
+        resume_text = session.get("parsed_resume", {}).get("raw_text", "")
+
+        # Start the realtime voice session
+        await create_realtime_session(criterion, resume_text, websocket)
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.send_json({"type": "error", "message": str(e)})
+        except Exception:
+            pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass

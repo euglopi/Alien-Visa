@@ -15,6 +15,7 @@ dependencies = [
     "pymupdf",
     "python-docx",
     "python-dotenv",
+    "websockets",
 ]
 
 [dependency-groups]

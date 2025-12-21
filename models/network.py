@@ -5,6 +5,7 @@ from datetime import datetime
 
 class MentorProfile(BaseModel):
     """Profile of a successful O-1 holder willing to mentor."""
+
     id: str
     name: str  # Anonymous or real name with permission
     field: str  # e.g., "Computer Science", "Medicine", "Arts"
@@ -22,6 +23,7 @@ class MentorProfile(BaseModel):
 
 class ExpertReviewer(BaseModel):
     """Expert available to provide consultation letters."""
+
     id: str
     name: str
     credentials: str  # e.g., "Professor of Computer Science, Stanford University"
@@ -43,6 +45,7 @@ class ExpertReviewer(BaseModel):
 
 class SuccessStory(BaseModel):
     """Anonymous success story from approved O-1 applicant."""
+
     id: str
     field: str
     subfield: Optional[str] = None
@@ -59,6 +62,7 @@ class SuccessStory(BaseModel):
 
 class ForumPost(BaseModel):
     """Community forum post."""
+
     id: str
     author_id: str  # Anonymous user ID
     field: str
@@ -75,6 +79,7 @@ class ForumPost(BaseModel):
 
 class ForumReply(BaseModel):
     """Reply to a forum post."""
+
     id: str
     post_id: str
     author_id: str
@@ -86,6 +91,7 @@ class ForumReply(BaseModel):
 
 class MentorshipRequest(BaseModel):
     """Request for mentorship."""
+
     id: str
     seeker_id: str
     mentor_id: str
@@ -99,6 +105,7 @@ class MentorshipRequest(BaseModel):
 
 class NetworkMatch(BaseModel):
     """Matching result for mentors or experts."""
+
     type: Literal["mentor", "expert"]
     id: str
     name: str

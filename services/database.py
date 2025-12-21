@@ -39,7 +39,7 @@ def get_cached_result(content_hash: str) -> dict | None:
     try:
         row = conn.execute(
             "SELECT parsed_resume, assessment, filename FROM resume_cache WHERE content_hash = ?",
-            (content_hash,)
+            (content_hash,),
         ).fetchone()
 
         if not row:
@@ -80,7 +80,7 @@ def cache_result(
                 filename,
                 orjson.dumps(parsed_resume).decode(),
                 orjson.dumps(assessment).decode(),
-            )
+            ),
         )
         conn.commit()
     finally:
