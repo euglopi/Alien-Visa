@@ -8,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 from models.criteria import ChatMessage, ChallengeSession, CriterionEvidence, O1Assessment
+from models.network import MentorshipRequest
 from models.resume import ParsedResume
 from services.analyzer import analyze_resume
 from services.challenger import process_chat_message, rescore_criterion, start_challenge
@@ -20,6 +21,15 @@ from services.scorer import calculate_score
 class ChatRequest(BaseModel):
     """Request body for chat endpoint."""
 
+    message: str
+
+
+class MentorshipRequestBody(BaseModel):
+    """Request body for creating a mentorship request."""
+
+    mentor_id: str
+    session_id: str
+    field: str
     message: str
 
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
@@ -233,6 +243,27 @@ async def get_mentors(field: str, subfield: str = None, limit: int = 5):
         return {"mentors": [m.model_dump() for m in mentors]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to find mentors: {str(e)}")
+
+
+@app.post("/api/mentorship-requests")
+async def create_mentorship_request(body: MentorshipRequestBody):
+    """Create a mentorship request tied to a resume session."""
+    try:
+        request_obj = MentorshipRequest(
+            id=str(uuid4()),
+            seeker_id=body.session_id,
+            mentor_id=body.mentor_id,
+            field=body.field,
+            topics=["Resume review", "O-1 case strategy"],
+            message=body.message,
+        )
+        network_service.request_mentorship(request_obj)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create mentorship request: {str(e)}",
+        )
 
 
 @app.get("/api/experts")

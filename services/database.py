@@ -42,13 +42,21 @@ def get_cached_result(content_hash: str) -> dict | None:
             (content_hash,)
         ).fetchone()
 
-        if row:
-            return {
-                "parsed_resume": orjson.loads(row["parsed_resume"]),
-                "assessment": orjson.loads(row["assessment"]),
-                "filename": row["filename"],
-            }
-        return None
+        if not row:
+            return None
+
+        parsed_resume = orjson.loads(row["parsed_resume"])
+        assessment = orjson.loads(row["assessment"])
+
+        # If the previous parse failed, treat this as a cache miss so we can retry
+        if not parsed_resume.get("parse_success", False):
+            return None
+
+        return {
+            "parsed_resume": parsed_resume,
+            "assessment": assessment,
+            "filename": row["filename"],
+        }
     finally:
         conn.close()
 
