@@ -5,6 +5,8 @@ from fastapi import FastAPI, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 
+from services.parser import parse_resume
+
 app = FastAPI(title="O-1 Visa Readiness Analyzer")
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
@@ -75,10 +77,15 @@ async def upload(request: Request, resume: UploadFile):
     # Generate session ID
     session_id = str(uuid4())
 
-    # Store session with hardcoded results (file is accepted but not processed yet)
+    # Parse the uploaded file
+    content = await resume.read()
+    parsed = await parse_resume(content, resume.filename)
+
+    # Store session with parsed resume and hardcoded criteria
     sessions[session_id] = {
         "filename": resume.filename,
         "criteria": HARDCODED_CRITERIA,
+        "parsed_resume": parsed.model_dump(),
     }
 
     return RedirectResponse(url=f"/results/{session_id}", status_code=303)
@@ -97,6 +104,7 @@ async def results(request: Request, session_id: str):
 
     criteria = session["criteria"]
     criteria_met = sum(1 for c in criteria if c["met"])
+    parsed_resume = session.get("parsed_resume")
 
     return templates.TemplateResponse(
         request,
@@ -104,5 +112,6 @@ async def results(request: Request, session_id: str):
         {
             "criteria": criteria,
             "criteria_met": criteria_met,
+            "parsed_resume": parsed_resume,
         },
     )

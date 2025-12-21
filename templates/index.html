@@ -3,6 +3,19 @@
 {% block title %}Upload Resume - O-1 Visa Readiness Analyzer{% endblock %}
 
 {% block content %}
+<!-- Loading Overlay -->
+<div id="loading-overlay" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div class="text-center">
+        <!-- Spinner -->
+        <div class="inline-block w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mb-6"></div>
+
+        <h2 class="text-2xl font-semibold text-white mb-3">Analyzing your resume</h2>
+        <p id="loading-subtitle" class="text-lg text-blue-200 transition-opacity duration-300">
+            Uploading document...
+        </p>
+    </div>
+</div>
+
 <div class="min-h-screen flex flex-col items-center justify-center px-4">
     <div class="max-w-xl w-full">
         <div class="text-center mb-8">
@@ -14,7 +27,7 @@
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-8">
-            <form action="/upload" method="post" enctype="multipart/form-data">
+            <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
                 <div class="mb-6">
                     <label for="resume" class="block text-sm font-medium text-gray-700 mb-2">
                         Upload your resume
@@ -51,4 +64,36 @@
         </p>
     </div>
 </div>
+
+<script>
+    const subtitles = [
+        "Uploading document...",
+        "Parsing resume content...",
+        "Extracting work experience...",
+        "Analyzing achievements...",
+        "Matching against O-1A criteria...",
+        "Evaluating extraordinary ability...",
+        "Preparing your results..."
+    ];
+
+    let currentIndex = 0;
+    const subtitleEl = document.getElementById('loading-subtitle');
+    const overlay = document.getElementById('loading-overlay');
+    const form = document.getElementById('upload-form');
+
+    function cycleSubtitle() {
+        subtitleEl.style.opacity = '0';
+        setTimeout(() => {
+            currentIndex = (currentIndex + 1) % subtitles.length;
+            subtitleEl.textContent = subtitles[currentIndex];
+            subtitleEl.style.opacity = '1';
+        }, 300);
+    }
+
+    form.addEventListener('submit', function() {
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+        setInterval(cycleSubtitle, 2000);
+    });
+</script>
 {% endblock %}

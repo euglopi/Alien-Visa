@@ -62,6 +62,34 @@
             {% endfor %}
         </div>
 
+        {% if parsed_resume %}
+        <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+            <details>
+                <summary class="cursor-pointer font-semibold text-gray-800 hover:text-gray-600">
+                    View Parsed Resume Text
+                    {% if not parsed_resume.parse_success %}
+                    <span class="ml-2 text-red-600 text-sm">(Parse Error)</span>
+                    {% endif %}
+                </summary>
+                <div class="mt-4">
+                    {% if parsed_resume.parse_success %}
+                    <div class="text-xs text-gray-500 mb-2">
+                        File: {{ parsed_resume.filename }} ({{ parsed_resume.file_type | upper }})
+                    </div>
+                    <pre class="bg-gray-50 p-4 rounded-md text-sm text-gray-700 whitespace-pre-wrap overflow-x-auto max-h-96 overflow-y-auto">{{ parsed_resume.raw_text }}</pre>
+                    {% else %}
+                    <div class="bg-red-50 p-4 rounded-md">
+                        <p class="text-red-700">
+                            <span class="font-medium">Error parsing resume:</span>
+                            {{ parsed_resume.error_message }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </details>
+        </div>
+        {% endif %}
+
         <div class="mt-8 text-center">
             <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">
                 &larr; Analyze another resume
