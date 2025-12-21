@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Immigration Copilot</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="text-center mb-10">
+            <h1 class="text-3xl font-bold text-gray-900">Immigration Copilot</h1>
+            <p class="text-gray-600 mt-2">Answer questions to get personalized immigration guidance</p>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6">
+                <h2 class="text-xl font-bold text-white">Assistant</h2>
+                <p class="text-blue-100 text-sm">Ready to help with your immigration questions</p>
+            </div>
+
+            <div id="messages" class="h-96 overflow-y-auto p-6 space-y-4">
+                <div class="text-center text-gray-500 py-8">
+                    Click "Start Chat" to begin your immigration assessment
+                </div>
+            </div>
+
+            <div class="border-t border-gray-200 p-6">
+                <div class="flex space-x-4">
+                    <input type="text" id="userInput" placeholder="Type your answer here..."
+                           class="flex-1 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="sendMessage()" id="sendButton"
+                            class="bg-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-700">
+                        Send
+                    </button>
+                    <button onclick="startChat()" id="startButton"
+                            class="bg-green-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-green-700">
+                        Start Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="infoPanel" class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 hidden">
+            <div class="bg-white rounded-xl shadow p-6">
+                <h3 class="font-bold text-gray-900 mb-4">Collected Information</h3>
+                <div id="collectedInfo" class="space-y-2">
+                    <div class="text-gray-500 italic">Waiting for information...</div>
+                </div>
+            </div>
+
+            <div id="indexContainer" class="bg-white rounded-xl shadow p-6 hidden">
+                <h3 class="font-bold text-gray-900 mb-4">Assessment Results</h3>
+                <div id="immigrationIndex" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
+            <p class="text-sm text-yellow-700">
+                Disclaimer: This is not legal advice. Always consult with a qualified immigration attorney.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        let chatActive = false;
+
+        function startChat() {
+            fetch('/api/start', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(response => response.json())
+                .then(data => {
+                    addMessage(data.question, 'assistant');
+                    document.getElementById('startButton').style.display = 'none';
+                    document.getElementById('infoPanel').classList.remove('hidden');
+                    chatActive = true;
+                });
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message || !chatActive) return;
+
+            addMessage(message, 'user');
+            input.value = '';
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addMessage(data.error, 'error');
+                    return;
+                }
+
+                addMessage(data.response, 'assistant');
+                updateCollectedInfo(data.user_info);
+
+                if (data.should_create_index && data.index) {
+                    showImmigrationIndex(data.index);
+                }
+            });
+        }
+
+        function addMessage(text, sender) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+
+            messageDiv.className = sender === 'user' ? 'text-right' : 'text-left';
+            const bubble = document.createElement('div');
+            bubble.className = `inline-block max-w-3xl rounded-2xl px-4 py-3 ${
+                sender === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
+            }`;
+            bubble.textContent = text;
+            messageDiv.appendChild(bubble);
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function updateCollectedInfo(userInfo) {
+            const infoDiv = document.getElementById('collectedInfo');
+            if (!userInfo || Object.keys(userInfo).length === 0) return;
+
+            let html = '';
+            if (userInfo.country) html += `<div>Country: ${userInfo.country}</div>`;
+            if (userInfo.o1_field) html += `<div>O-1 Field: ${userInfo.o1_field}</div>`;
+            if (userInfo.education) html += `<div>Education: ${userInfo.education}</div>`;
+            if (userInfo.profession) html += `<div>Profession: ${userInfo.profession}</div>`;
+            if (userInfo.goal) html += `<div>Goal: ${userInfo.goal}</div>`;
+            if (userInfo.recognition && userInfo.recognition.length) {
+                html += `<div>Recognition: ${userInfo.recognition.join(', ')}</div>`;
+            }
+
+            infoDiv.innerHTML = html;
+        }
+
+        function showImmigrationIndex(index) {
+            const container = document.getElementById('indexContainer');
+            const indexDiv = document.getElementById('immigrationIndex');
+
+            container.classList.remove('hidden');
+
+            let html = '';
+
+            for (const [key, section] of Object.entries(index)) {
+                html += `<div class="border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-bold text-gray-800 mb-2">${section.title}</h4>`;
+
+                if (section.items) {
+                    html += `<ul class="space-y-2">`;
+                    section.items.forEach(item => {
+                        html += `<li class="text-gray-700">${item}</li>`;
+                    });
+                    html += `</ul>`;
+                }
+
+                if (section.steps) {
+                    html += `<ol class="space-y-2">`;
+                    section.steps.forEach(step => {
+                        html += `<li class="text-gray-700">${step}</li>`;
+                    });
+                    html += `</ol>`;
+                }
+
+                if (section.criteria_met) {
+                    html += `<div class="mt-2">
+                        <p class="font-medium text-gray-700">Criteria Met:</p>
+                        <ul class="text-sm text-gray-600 mt-1 space-y-1">`;
+                    section.criteria_met.forEach(criterion => {
+                        html += `<li>${criterion}</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+
+                if (section.level) {
+                    html += `<div class="mt-2 p-2 bg-blue-50 rounded">
+                        <p class="font-medium text-blue-700">Eligibility Level: ${section.level}</p>
+                    </div>`;
+                }
+
+                if (section.score !== undefined) {
+                    html += `<div class="mt-2 p-2 bg-green-50 rounded">
+                        <p class="font-medium text-green-700">Score: ${section.score}/100</p>
+                    </div>`;
+                }
+
+                html += `</div>`;
+            }
+
+            indexDiv.innerHTML = html;
+        }
+
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
