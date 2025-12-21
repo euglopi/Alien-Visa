@@ -137,9 +137,7 @@ def analyze_resume(parsed_resume: ParsedResume) -> O1Assessment:
         content = response.choices[0].message.content
         data = orjson.loads(content)
 
-        return O1Assessment(
-            criteria=[CriterionEvidence(**c) for c in data["criteria"]]
-        )
+        return O1Assessment(criteria=[CriterionEvidence(**c) for c in data["criteria"]])
 
     except Exception as e:
         return _create_empty_assessment(f"Analysis failed: {e}")
