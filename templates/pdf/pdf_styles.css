@@ -1,0 +1,285 @@
+@page {
+    size: letter;
+    margin: 0.75in;
+    @bottom-center {
+        content: "Page " counter(page) " of " counter(pages);
+        font-size: 10px;
+        color: #666;
+    }
+}
+
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    font-size: 11pt;
+    line-height: 1.5;
+    color: #333;
+}
+
+.report-header {
+    border-bottom: 2px solid #1e40af;
+    padding-bottom: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.report-header h1 {
+    color: #1e40af;
+    font-size: 24pt;
+    margin: 0;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 12pt;
+    margin-top: 5px;
+}
+
+.meta-section {
+    text-align: right;
+    font-size: 10pt;
+    color: #666;
+}
+
+.meta-section p {
+    margin: 2px 0;
+}
+
+.summary-section {
+    margin-bottom: 30px;
+}
+
+.summary-box {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 15px 0;
+    border-left: 4px solid #ccc;
+}
+
+.summary-box.strong {
+    border-left-color: #22c55e;
+    background: #f0fdf4;
+}
+
+.summary-box.moderate {
+    border-left-color: #eab308;
+    background: #fefce8;
+}
+
+.summary-box.needs-work {
+    border-left-color: #ef4444;
+    background: #fef2f2;
+}
+
+.score-display {
+    text-align: center;
+}
+
+.score-number {
+    font-size: 36pt;
+    font-weight: bold;
+    color: #1e40af;
+    display: block;
+}
+
+.score-label {
+    font-size: 10pt;
+    color: #666;
+}
+
+.tier-display {
+    text-align: center;
+}
+
+.tier-label {
+    display: block;
+    font-size: 10pt;
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.tier-value {
+    font-size: 18pt;
+    font-weight: bold;
+}
+
+.summary-note {
+    font-size: 10pt;
+    color: #666;
+    font-style: italic;
+}
+
+h2 {
+    color: #1e40af;
+    font-size: 16pt;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 10px;
+    margin-top: 30px;
+}
+
+.criterion-card {
+    margin: 20px 0;
+    padding: 15px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    page-break-inside: avoid;
+}
+
+.criterion-card.met {
+    border-left: 4px solid #22c55e;
+}
+
+.criterion-card.not-met {
+    border-left: 4px solid #ef4444;
+}
+
+.criterion-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.criterion-status {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 9pt;
+    font-weight: bold;
+}
+
+.criterion-card.met .criterion-status {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.criterion-card.not-met .criterion-status {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.criterion-header h3 {
+    margin: 0;
+    font-size: 14pt;
+}
+
+.criterion-description {
+    font-size: 10pt;
+    color: #666;
+    margin: 10px 0;
+}
+
+.evidence-box,
+.reasoning-box {
+    background: #f8fafc;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin: 10px 0;
+}
+
+.evidence-box h4,
+.reasoning-box h4 {
+    font-size: 10pt;
+    color: #1e40af;
+    margin: 0 0 5px 0;
+}
+
+.evidence-box p,
+.reasoning-box p {
+    margin: 0;
+    font-size: 10pt;
+}
+
+.challenge-transcript {
+    background: #f0f9ff;
+    padding: 15px;
+    border-radius: 4px;
+    margin-top: 15px;
+}
+
+.challenge-transcript h4 {
+    color: #0369a1;
+    margin: 0 0 10px 0;
+    font-size: 11pt;
+}
+
+.transcript-note {
+    font-size: 9pt;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 10px;
+}
+
+.message {
+    margin: 8px 0;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 10pt;
+}
+
+.message.user {
+    background: #dbeafe;
+    margin-left: 20px;
+}
+
+.message.assistant {
+    background: #f1f5f9;
+    margin-right: 20px;
+}
+
+.role-label {
+    font-weight: bold;
+    font-size: 9pt;
+}
+
+.resume-section {
+    page-break-before: always;
+}
+
+.section-note {
+    font-size: 10pt;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 15px;
+}
+
+.resume-content {
+    background: #f8fafc;
+    padding: 20px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.resume-content pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: 'Courier New', monospace;
+    font-size: 9pt;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.report-footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.disclaimer {
+    font-size: 9pt;
+    color: #666;
+    background: #fef3c7;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #fcd34d;
+}
+
+.generated-by {
+    text-align: center;
+    font-size: 9pt;
+    color: #999;
+    margin-top: 20px;
+}

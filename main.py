@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from uuid import uuid4
 
@@ -9,7 +10,7 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -28,6 +29,7 @@ from services.voice import create_realtime_session
 from services.database import cache_result, get_cached_result, get_content_hash
 from services.network import NetworkService
 from services.parser import parse_resume
+from services.pdf_generator import create_lawyer_handoff_zip, generate_assessment_pdf
 from services.scorer import calculate_score
 
 
@@ -72,6 +74,9 @@ async def upload(request: Request, resume: UploadFile):
     content = await resume.read()
     content_hash = get_content_hash(content)
 
+    # Encode original file bytes for later PDF generation
+    original_file_b64 = base64.b64encode(content).decode("utf-8")
+
     cached = get_cached_result(content_hash)
     if cached:
         # Cache hit - use stored results
@@ -79,6 +84,7 @@ async def upload(request: Request, resume: UploadFile):
             "filename": resume.filename,
             "assessment": cached["assessment"],
             "parsed_resume": cached["parsed_resume"],
+            "original_file_bytes": original_file_b64,
         }
     else:
         # Cache miss - parse and analyze
@@ -96,6 +102,7 @@ async def upload(request: Request, resume: UploadFile):
             "filename": resume.filename,
             "assessment": assessment_dump,
             "parsed_resume": parsed_dump,
+            "original_file_bytes": original_file_b64,
         }
 
     return RedirectResponse(url=f"/results/{session_id}", status_code=303)
@@ -246,6 +253,64 @@ async def challenge_rescore(session_id: str, criterion_name: str):
         "new_score": new_score,
         "new_tier": new_tier,
     }
+
+
+@app.get("/download/{session_id}/lawyer-package")
+async def download_lawyer_package(session_id: str):
+    """Generate and download ZIP package for lawyer handoff."""
+    session = sessions.get(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    assessment = O1Assessment(**session["assessment"])
+    parsed_resume = ParsedResume(**session["parsed_resume"])
+    score, tier = calculate_score(assessment)
+
+    # Get challenges (may be empty)
+    challenges = {}
+    for name, data in session.get("challenges", {}).items():
+        challenges[name] = ChallengeSession(**data)
+
+    # Get original file bytes
+    original_file_b64 = session.get("original_file_bytes")
+    original_filename = session.get("filename", "resume.pdf")
+
+    if not original_file_b64:
+        # Fallback: Generate PDF-only without original resume
+        pdf_bytes = generate_assessment_pdf(
+            assessment=assessment,
+            parsed_resume=parsed_resume,
+            challenges=challenges,
+            score=score,
+            tier=tier,
+        )
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="o1a_assessment_{session_id[:8]}.pdf"'
+            },
+        )
+
+    # Generate full ZIP package
+    original_file_bytes = base64.b64decode(original_file_b64)
+    zip_bytes = create_lawyer_handoff_zip(
+        assessment=assessment,
+        parsed_resume=parsed_resume,
+        challenges=challenges,
+        score=score,
+        tier=tier,
+        original_file_bytes=original_file_bytes,
+        original_filename=original_filename,
+    )
+
+    return Response(
+        content=zip_bytes,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="o1a_lawyer_package_{session_id[:8]}.zip"'
+        },
+    )
 
 
 # Network and Community Features
