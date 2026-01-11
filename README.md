@@ -1,6 +1,6 @@
 # O-1 Visa Readiness Analyzer
 
-![Cover](assets/icon.png)
+![Cover](assets/icon3.png)
 
 An AI-powered tool that evaluates eligibility for O-1 visas by analyzing resumes against the 8 evidentiary criteria required for "extraordinary ability" classification.
 
